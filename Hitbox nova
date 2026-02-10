@@ -1,0 +1,53 @@
+-- Configurações Globais
+getgenv().HBE_Enabled = true
+getgenv().WallCheck = true
+getgenv().HitboxSize = 15 -- Tamanho da hitbox expandida
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Função para verificar se existe uma parede entre o jogador e o alvo
+local function IsBehindWall(targetPart)
+    if not getgenv().WallCheck then return false end
+    
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return true end
+    
+    -- Parâmetros do Raycast
+    local rayOrigin = char.HumanoidRootPart.Position
+    local rayDirection = (targetPart.Position - rayOrigin)
+    
+    local raycastParams = RaycastParams.new()
+    -- Ignora o seu próprio personagem e o personagem do alvo no cálculo de colisão
+    raycastParams.FilterDescendantsInstances = {char, targetPart.Parent}
+    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+    
+    local result = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+    
+    -- Se o resultado for nil, não há nada no caminho (está visível)
+    return result ~= nil 
+end
+
+-- Loop principal
+RunService.RenderStepped:Connect(function()
+    if not getgenv().HBE_Enabled then return end
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = player.Character.HumanoidRootPart
+            
+            -- Só expande se o HBE estiver ligado E o jogador NÃO estiver atrás da parede
+            if not IsBehindWall(hrp) then
+                hrp.Size = Vector3.new(getgenv().HitboxSize, getgenv().HitboxSize, getgenv().HitboxSize)
+                hrp.Transparency = 0.7 -- Visualização da hitbox (opcional)
+                hrp.Color = Color3.fromRGB(255, 0, 0)
+                hrp.CanCollide = false
+            else
+                -- Retorna ao tamanho padrão se estiver atrás da parede ou invisível
+                hrp.Size = Vector3.new(2, 2, 1)
+                hrp.Transparency = 1
+            end
+        end
+    end
+end)
